@@ -43,6 +43,9 @@ pub struct Config {
 
     /// Whether to automatically accept pair requests from known devices.
     pub auto_accept_known: bool,
+
+    /// Relay server URL for cross-network connectivity.
+    pub relay_url: String,
 }
 
 impl Default for Config {
@@ -62,6 +65,7 @@ impl Default for Config {
             compression_enabled: true,
             download_dir,
             auto_accept_known: false,
+            relay_url: "wss://stark-link.onrender.com".into(),
         }
     }
 }
