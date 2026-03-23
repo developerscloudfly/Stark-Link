@@ -1,0 +1,38 @@
+# Rust
+/stark-link-core/target/
+/stark-link-desktop/src-tauri/target/
+/C:/stark-build/
+
+# Node
+node_modules/
+dist/
+
+# Build artifacts
+installers/
+*.exe
+*.msi
+*.dmg
+*.AppImage
+*.deb
+*.rpm
+
+# Environment
+.env
+.env.local
+.env.production.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tauri generated schemas (auto-generated)
+stark-link-desktop/src-tauri/gen/
+
+# Cargo lock for library crates
+stark-link-core/Cargo.lock

@@ -1,0 +1,105 @@
+name: CI Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check-core:
+    name: Check Rust Core
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            stark-link-core/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('stark-link-core/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Run cargo check
+        working-directory: stark-link-core
+        run: cargo check --all-targets
+
+      - name: Run cargo test
+        working-directory: stark-link-core
+        run: cargo test
+
+  check-relay:
+    name: Check Relay Server
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: relay-server/package-lock.json
+
+      - name: Install dependencies
+        working-directory: relay-server
+        run: npm install
+
+      - name: Build
+        working-directory: relay-server
+        run: npm run build
+
+  build-desktop:
+    name: Build Desktop App (Windows)
+    runs-on: windows-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [check-core, check-relay]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            stark-link-desktop/src-tauri/target/
+          key: ${{ runner.os }}-cargo-desktop-${{ hashFiles('stark-link-desktop/src-tauri/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-desktop-
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: stark-link-desktop/package-lock.json
+
+      - name: Install dependencies
+        working-directory: stark-link-desktop
+        run: npm install
+
+      - name: Build Tauri app
+        working-directory: stark-link-desktop
+        run: npm run tauri build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-windows
+          path: stark-link-desktop/src-tauri/target/release/bundle/
+          retention-days: 7
