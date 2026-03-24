@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Devices from "./pages/Devices";
+import RemoteControl from "./pages/RemoteControl";
 import Transfers from "./pages/Transfers";
 import Clipboard from "./pages/Clipboard";
 import Settings from "./pages/Settings";
@@ -14,6 +15,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/devices" element={<Devices />} />
+          <Route path="/remote" element={<RemoteControl />} />
           <Route path="/transfers" element={<Transfers />} />
           <Route path="/clipboard" element={<Clipboard />} />
           <Route path="/settings" element={<Settings />} />

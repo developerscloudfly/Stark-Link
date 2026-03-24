@@ -28,7 +28,7 @@ pub mod transfer;
 use std::path::Path;
 use std::sync::Arc;
 
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, RwLock};
 use uuid::Uuid;
 
 use crate::clipboard::ClipboardManager;
@@ -56,6 +56,8 @@ pub struct StarkLink {
     pub transfer: TransferManager,
     /// Clipboard manager.
     pub clipboard: ClipboardManager,
+    /// Transfer message receiver — drained by the forwarding task in `start()`.
+    transfer_rx: Arc<RwLock<Option<mpsc::Receiver<(Uuid, protocol::Message)>>>>,
 }
 
 impl StarkLink {
@@ -89,9 +91,8 @@ impl StarkLink {
         let connection = Arc::new(ConnectionManager::new(device.clone(), config.clone()));
 
         // The transfer manager sends messages through a channel; the
-        // application layer is responsible for draining it and forwarding
-        // via the connection manager.
-        let (transfer_tx, _transfer_rx) = mpsc::channel(256);
+        // forwarding task in start() drains it and sends via the connection manager.
+        let (transfer_tx, transfer_rx) = mpsc::channel(256);
         let transfer = TransferManager::new(config.clone(), transfer_tx);
 
         let clipboard =
@@ -105,10 +106,11 @@ impl StarkLink {
             connection,
             transfer,
             clipboard,
+            transfer_rx: Arc::new(RwLock::new(Some(transfer_rx))),
         })
     }
 
-    /// Start the WebSocket server and mDNS browsing.
+    /// Start the WebSocket server, mDNS browsing, and transfer forwarding.
     ///
     /// Returns join handles for the server and discovery background tasks.
     pub async fn start(
@@ -119,6 +121,19 @@ impl StarkLink {
     )> {
         let server_handle = self.connection.start_server().await?;
         let browse_handle = self.discovery.start_browsing()?;
+
+        // Spawn a task that forwards transfer messages to the connection manager.
+        if let Some(mut rx) = self.transfer_rx.write().await.take() {
+            let connection = Arc::clone(&self.connection);
+            tokio::spawn(async move {
+                while let Some((peer_id, msg)) = rx.recv().await {
+                    if let Err(e) = connection.send(&peer_id, msg).await {
+                        tracing::error!("transfer forward to {peer_id} failed: {e}");
+                    }
+                }
+                tracing::info!("transfer forwarding task exiting");
+            });
+        }
 
         tracing::info!("StarkLink is running on port {}", self.config.port);
 

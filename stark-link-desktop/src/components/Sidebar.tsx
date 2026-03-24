@@ -4,6 +4,7 @@ import {
   Monitor,
   ArrowUpDown,
   ClipboardList,
+  Gamepad2,
   Settings,
   Zap,
 } from "lucide-react";
@@ -11,6 +12,7 @@ import {
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/devices", icon: Monitor, label: "Devices" },
+  { to: "/remote", icon: Gamepad2, label: "Remote" },
   { to: "/transfers", icon: ArrowUpDown, label: "Transfers" },
   { to: "/clipboard", icon: ClipboardList, label: "Clipboard" },
   { to: "/settings", icon: Settings, label: "Settings" },

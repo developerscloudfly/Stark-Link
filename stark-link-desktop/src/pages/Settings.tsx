@@ -24,10 +24,10 @@ function Settings() {
   }, []);
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white mb-1">Settings</h1>
+        <h1 className="text-3xl font-bold text-white mb-1">Settings</h1>
         <p className="text-dark-text-secondary text-sm">
           Configure your Stark-Link device
         </p>

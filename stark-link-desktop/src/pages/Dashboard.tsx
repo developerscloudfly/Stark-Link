@@ -111,11 +111,20 @@ function Dashboard() {
   return (
     <div className="max-w-5xl mx-auto">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-1">Dashboard</h1>
-        <p className="text-dark-text-secondary text-sm">
-          Overview of your Stark-Link network
-        </p>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-1">Dashboard</h1>
+          <p className="text-dark-text-secondary text-sm">
+            Overview of your Stark-Link network
+          </p>
+        </div>
+        <button
+          onClick={loadData}
+          className="flex items-center gap-2 px-4 py-2 bg-dark-card border border-dark-border rounded-xl text-sm text-dark-text hover:bg-dark-hover transition-colors"
+        >
+          <RefreshCw size={16} />
+          Refresh
+        </button>
       </div>
 
       {/* Device identity card */}
@@ -125,7 +134,7 @@ function Dashboard() {
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent-gradient-start to-accent-gradient-end flex items-center justify-center shadow-lg shadow-accent-blue/20">
               <Zap size={26} className="text-white" />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <h2 className="text-xl font-bold text-white">{deviceInfo.name}</h2>
               <p className="text-xs text-dark-text-secondary mt-0.5">
                 {deviceInfo.os} &middot; {deviceInfo.device_type} &middot;{" "}
@@ -138,7 +147,7 @@ function Dashboard() {
                 </p>
               )}
             </div>
-            <div className="flex items-center gap-2 bg-status-online/10 px-3 py-1.5 rounded-full">
+            <div className="flex items-center gap-2 bg-status-online/10 px-3 py-1.5 rounded-full shrink-0">
               <Activity size={14} className="text-status-online" />
               <span className="text-sm text-status-online font-medium">Active</span>
             </div>
@@ -147,9 +156,9 @@ function Dashboard() {
       )}
 
       {/* Stats grid */}
-      <div className="grid grid-cols-3 gap-5 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <div className="bg-dark-card border border-dark-border rounded-2xl p-5 hover:border-accent-blue/20 transition-colors">
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-xl bg-accent-blue/10 flex items-center justify-center">
               <Monitor size={20} className="text-accent-blue" />
             </div>
@@ -164,7 +173,7 @@ function Dashboard() {
         </div>
 
         <div className="bg-dark-card border border-dark-border rounded-2xl p-5 hover:border-accent-purple/20 transition-colors">
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-xl bg-accent-purple/10 flex items-center justify-center">
               <ArrowUpDown size={20} className="text-accent-purple" />
             </div>
@@ -177,7 +186,7 @@ function Dashboard() {
         </div>
 
         <div className="bg-dark-card border border-dark-border rounded-2xl p-5 hover:border-status-online/20 transition-colors">
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-xl bg-status-online/10 flex items-center justify-center">
               <ClipboardList size={20} className="text-status-online" />
             </div>
@@ -193,20 +202,13 @@ function Dashboard() {
         <h3 className="text-xs font-semibold text-dark-text-secondary uppercase tracking-widest mb-3">
           Quick Actions
         </h3>
-        <div className="flex gap-3 items-center">
+        <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={handleSendFile}
             className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-accent-blue to-accent-purple rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity shadow-lg shadow-accent-blue/10"
           >
             <Upload size={16} />
             Send File
-          </button>
-          <button
-            onClick={loadData}
-            className="flex items-center gap-2 px-5 py-2.5 bg-dark-card border border-dark-border rounded-xl text-sm font-medium text-dark-text hover:bg-dark-hover transition-colors"
-          >
-            <RefreshCw size={16} />
-            Refresh
           </button>
           {sendStatus && (
             <span
@@ -236,12 +238,12 @@ function Dashboard() {
                 key={peer.id}
                 className="bg-dark-card border border-dark-border rounded-xl px-5 py-3 flex items-center gap-3"
               >
-                <span className="w-2.5 h-2.5 rounded-full bg-status-online shadow-sm shadow-status-online/50"></span>
+                <span className="w-2.5 h-2.5 rounded-full bg-status-online shadow-sm shadow-status-online/50 shrink-0"></span>
                 <span className="text-sm text-white font-medium font-mono">
                   {peer.id.slice(0, 8)}...
                 </span>
                 <span className="text-xs text-dark-text-secondary">{peer.address}</span>
-                <span className="ml-auto text-xs text-status-online font-medium bg-status-online/10 px-2 py-0.5 rounded-full">
+                <span className="ml-auto text-xs text-status-online font-medium bg-status-online/10 px-2 py-0.5 rounded-full shrink-0">
                   {peer.state}
                 </span>
               </div>

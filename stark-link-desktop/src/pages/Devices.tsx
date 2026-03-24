@@ -101,11 +101,11 @@ function Devices() {
   const pairedPeers = connectedPeers.filter((p) => p.state === "Paired" || p.state === "Controlling");
 
   return (
-    <div className="max-w-5xl">
+    <div className="max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-white mb-1">Devices</h1>
+          <h1 className="text-3xl font-bold text-white mb-1">Devices</h1>
           <p className="text-dark-text-secondary text-sm">
             Discover and connect to nearby devices
           </p>
@@ -113,7 +113,7 @@ function Devices() {
         <div className="flex gap-2">
           <button
             onClick={() => setShowManualConnect(!showManualConnect)}
-            className="flex items-center gap-2 px-4 py-2 bg-dark-card border border-dark-border rounded-lg text-sm text-dark-text hover:bg-dark-hover transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-dark-card border border-dark-border rounded-xl text-sm text-dark-text hover:bg-dark-hover transition-colors"
           >
             <Plug size={16} />
             Connect by IP
@@ -121,7 +121,7 @@ function Devices() {
           <button
             onClick={handleStartDiscovery}
             disabled={isDiscovering}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-accent-blue to-accent-purple rounded-lg text-sm font-medium text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-accent-blue to-accent-purple rounded-xl text-sm font-medium text-white hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             <Radar size={16} className={isDiscovering ? "animate-pulse" : ""} />
             {isDiscovering ? "Scanning..." : "Scan"}

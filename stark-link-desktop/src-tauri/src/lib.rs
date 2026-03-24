@@ -280,6 +280,217 @@ async fn get_local_ip() -> Result<String, String> {
     Ok(addr.ip().to_string())
 }
 
+// ── Remote Control Commands ──────────────────────────────────────────────────
+
+#[tauri::command]
+async fn send_mouse_event(
+    state: State<'_, AppState>,
+    peer_id: String,
+    x: f64,
+    y: f64,
+    button: String,
+    action: String,
+) -> Result<String, String> {
+    let sl = state.stark_link.read().await;
+    let peer_uuid =
+        uuid::Uuid::parse_str(&peer_id).map_err(|e| format!("Invalid peer ID: {}", e))?;
+
+    let mouse_button = match button.as_str() {
+        "left" => stark_link_core::protocol::MouseButton::Left,
+        "right" => stark_link_core::protocol::MouseButton::Right,
+        "middle" => stark_link_core::protocol::MouseButton::Middle,
+        _ => stark_link_core::protocol::MouseButton::None,
+    };
+
+    let mouse_action = match action.as_str() {
+        "move" => stark_link_core::protocol::MouseAction::Move,
+        "down" => stark_link_core::protocol::MouseAction::Down,
+        "up" => stark_link_core::protocol::MouseAction::Up,
+        "click" => stark_link_core::protocol::MouseAction::Click,
+        "doubleclick" => stark_link_core::protocol::MouseAction::DoubleClick,
+        "scroll" => stark_link_core::protocol::MouseAction::Scroll,
+        _ => stark_link_core::protocol::MouseAction::Move,
+    };
+
+    let msg = stark_link_core::protocol::Message::new(
+        sl.device.id,
+        stark_link_core::protocol::Payload::MouseEvent {
+            session_id: uuid::Uuid::new_v4(),
+            event: stark_link_core::protocol::MouseEventData {
+                x,
+                y,
+                button: mouse_button,
+                action: mouse_action,
+            },
+        },
+    );
+
+    sl.connection
+        .send(&peer_uuid, msg)
+        .await
+        .map_err(|e| format!("Failed to send mouse event: {}", e))?;
+
+    Ok("Sent".to_string())
+}
+
+#[tauri::command]
+async fn send_keyboard_event(
+    state: State<'_, AppState>,
+    peer_id: String,
+    key: String,
+    action: String,
+    modifiers: Vec<String>,
+) -> Result<String, String> {
+    let sl = state.stark_link.read().await;
+    let peer_uuid =
+        uuid::Uuid::parse_str(&peer_id).map_err(|e| format!("Invalid peer ID: {}", e))?;
+
+    let key_action = match action.as_str() {
+        "down" => stark_link_core::protocol::KeyAction::Down,
+        "up" => stark_link_core::protocol::KeyAction::Up,
+        _ => stark_link_core::protocol::KeyAction::Down,
+    };
+
+    let key_modifiers: Vec<stark_link_core::protocol::KeyModifier> = modifiers
+        .iter()
+        .filter_map(|m| match m.as_str() {
+            "ctrl" => Some(stark_link_core::protocol::KeyModifier::Ctrl),
+            "alt" => Some(stark_link_core::protocol::KeyModifier::Alt),
+            "shift" => Some(stark_link_core::protocol::KeyModifier::Shift),
+            "meta" => Some(stark_link_core::protocol::KeyModifier::Meta),
+            _ => None,
+        })
+        .collect();
+
+    let msg = stark_link_core::protocol::Message::new(
+        sl.device.id,
+        stark_link_core::protocol::Payload::KeyboardEvent {
+            session_id: uuid::Uuid::new_v4(),
+            event: stark_link_core::protocol::KeyboardEventData {
+                key,
+                action: key_action,
+                modifiers: key_modifiers,
+            },
+        },
+    );
+
+    sl.connection
+        .send(&peer_uuid, msg)
+        .await
+        .map_err(|e| format!("Failed to send keyboard event: {}", e))?;
+
+    Ok("Sent".to_string())
+}
+
+#[tauri::command]
+async fn send_remote_command(
+    state: State<'_, AppState>,
+    peer_id: String,
+    command: String,
+    timeout_secs: u32,
+) -> Result<String, String> {
+    let sl = state.stark_link.read().await;
+    let peer_uuid =
+        uuid::Uuid::parse_str(&peer_id).map_err(|e| format!("Invalid peer ID: {}", e))?;
+
+    let msg = stark_link_core::protocol::Message::new(
+        sl.device.id,
+        stark_link_core::protocol::Payload::CommandExecute {
+            command,
+            timeout_secs,
+        },
+    );
+
+    sl.connection
+        .send(&peer_uuid, msg)
+        .await
+        .map_err(|e| format!("Failed to send command: {}", e))?;
+
+    Ok("Command sent".to_string())
+}
+
+#[tauri::command]
+async fn send_media_control(
+    state: State<'_, AppState>,
+    peer_id: String,
+    action: String,
+) -> Result<String, String> {
+    let sl = state.stark_link.read().await;
+    let peer_uuid =
+        uuid::Uuid::parse_str(&peer_id).map_err(|e| format!("Invalid peer ID: {}", e))?;
+
+    let media_action = match action.as_str() {
+        "play" => stark_link_core::protocol::MediaAction::Play,
+        "pause" => stark_link_core::protocol::MediaAction::Pause,
+        "next" => stark_link_core::protocol::MediaAction::Next,
+        "previous" => stark_link_core::protocol::MediaAction::Previous,
+        "volume_up" => stark_link_core::protocol::MediaAction::VolumeUp,
+        "volume_down" => stark_link_core::protocol::MediaAction::VolumeDown,
+        "mute" => stark_link_core::protocol::MediaAction::Mute,
+        _ => return Err("Unknown media action".to_string()),
+    };
+
+    let msg = stark_link_core::protocol::Message::new(
+        sl.device.id,
+        stark_link_core::protocol::Payload::MediaControl {
+            action: media_action,
+        },
+    );
+
+    sl.connection
+        .send(&peer_uuid, msg)
+        .await
+        .map_err(|e| format!("Failed to send media control: {}", e))?;
+
+    Ok("Sent".to_string())
+}
+
+#[tauri::command]
+async fn lock_remote_device(
+    state: State<'_, AppState>,
+    peer_id: String,
+) -> Result<String, String> {
+    let sl = state.stark_link.read().await;
+    let peer_uuid =
+        uuid::Uuid::parse_str(&peer_id).map_err(|e| format!("Invalid peer ID: {}", e))?;
+
+    let msg = stark_link_core::protocol::Message::new(
+        sl.device.id,
+        stark_link_core::protocol::Payload::RemoteLock,
+    );
+
+    sl.connection
+        .send(&peer_uuid, msg)
+        .await
+        .map_err(|e| format!("Failed to lock device: {}", e))?;
+
+    Ok("Lock command sent".to_string())
+}
+
+#[tauri::command]
+async fn launch_remote_app(
+    state: State<'_, AppState>,
+    peer_id: String,
+    app_id: String,
+    args: Vec<String>,
+) -> Result<String, String> {
+    let sl = state.stark_link.read().await;
+    let peer_uuid =
+        uuid::Uuid::parse_str(&peer_id).map_err(|e| format!("Invalid peer ID: {}", e))?;
+
+    let msg = stark_link_core::protocol::Message::new(
+        sl.device.id,
+        stark_link_core::protocol::Payload::AppLaunch { app_id, args },
+    );
+
+    sl.connection
+        .send(&peer_uuid, msg)
+        .await
+        .map_err(|e| format!("Failed to launch app: {}", e))?;
+
+    Ok("Launch command sent".to_string())
+}
+
 // ── App setup ───────────────────────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -325,6 +536,12 @@ pub fn run() {
             cancel_transfer,
             get_local_ip,
             add_clipboard_entry,
+            send_mouse_event,
+            send_keyboard_event,
+            send_remote_command,
+            send_media_control,
+            lock_remote_device,
+            launch_remote_app,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Stark-Link");
