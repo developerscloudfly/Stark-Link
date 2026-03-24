@@ -241,6 +241,15 @@ async fn cancel_transfer(
     Ok("Cancelled".to_string())
 }
 
+#[tauri::command]
+async fn get_local_ip() -> Result<String, String> {
+    // Find the local network IP by connecting to a remote address (no data sent)
+    let socket = std::net::UdpSocket::bind("0.0.0.0:0").map_err(|e| e.to_string())?;
+    socket.connect("8.8.8.8:80").map_err(|e| e.to_string())?;
+    let addr = socket.local_addr().map_err(|e| e.to_string())?;
+    Ok(addr.ip().to_string())
+}
+
 // ── App setup ───────────────────────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -284,6 +293,7 @@ pub fn run() {
             pause_transfer,
             resume_transfer,
             cancel_transfer,
+            get_local_ip,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Stark-Link");
