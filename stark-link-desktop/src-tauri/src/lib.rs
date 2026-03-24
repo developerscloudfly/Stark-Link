@@ -144,6 +144,22 @@ async fn get_clipboard_history(
 }
 
 #[tauri::command]
+async fn add_clipboard_entry(
+    state: State<'_, AppState>,
+    text: String,
+) -> Result<String, String> {
+    let sl = state.stark_link.read().await;
+    sl.clipboard
+        .set_local(
+            stark_link_core::protocol::ClipboardContentType::Text,
+            text.into_bytes(),
+        )
+        .await
+        .map_err(|e| format!("Failed to add: {}", e))?;
+    Ok("Added".to_string())
+}
+
+#[tauri::command]
 async fn connect_to_device(
     state: State<'_, AppState>,
     address: String,
@@ -308,6 +324,7 @@ pub fn run() {
             resume_transfer,
             cancel_transfer,
             get_local_ip,
+            add_clipboard_entry,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Stark-Link");
