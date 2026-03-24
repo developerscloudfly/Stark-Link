@@ -86,6 +86,15 @@ pub enum ConnectionEvent {
     },
 }
 
+/// Summary info about a connected peer, safe to return to the frontend.
+#[derive(Debug, Clone)]
+pub struct PeerInfo {
+    pub peer_id: Uuid,
+    pub state: ConnectionState,
+    pub address: Option<SocketAddr>,
+    pub last_seen: Instant,
+}
+
 // ── Connection manager ─────────────────────────────────────────────────────
 
 /// Manages all peer connections, the WebSocket server, and heartbeats.
@@ -121,6 +130,19 @@ impl ConnectionManager {
     pub async fn connected_peers(&self) -> Vec<Uuid> {
         let map = self.peers.read().await;
         map.keys().copied().collect()
+    }
+
+    /// Return detailed info about all connected peers.
+    pub async fn connected_peers_info(&self) -> Vec<PeerInfo> {
+        let map = self.peers.read().await;
+        map.values()
+            .map(|p| PeerInfo {
+                peer_id: p.peer_id,
+                state: p.state,
+                address: p.address,
+                last_seen: p.last_seen,
+            })
+            .collect()
     }
 
     /// Get the current state of a peer connection.

@@ -187,13 +187,27 @@ async fn get_transfers(
         .collect())
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConnectedPeerResponse {
+    pub id: String,
+    pub state: String,
+    pub address: String,
+}
+
 #[tauri::command]
 async fn get_connected_peers(
     state: State<'_, AppState>,
-) -> Result<Vec<String>, String> {
+) -> Result<Vec<ConnectedPeerResponse>, String> {
     let sl = state.stark_link.read().await;
-    let peers = sl.connection.connected_peers().await;
-    Ok(peers.iter().map(|p| p.to_string()).collect())
+    let peers = sl.connection.connected_peers_info().await;
+    Ok(peers
+        .into_iter()
+        .map(|p| ConnectedPeerResponse {
+            id: p.peer_id.to_string(),
+            state: format!("{}", p.state),
+            address: p.address.map(|a| a.to_string()).unwrap_or_default(),
+        })
+        .collect())
 }
 
 #[tauri::command]

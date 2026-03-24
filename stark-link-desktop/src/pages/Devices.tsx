@@ -1,35 +1,38 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { RefreshCw, Search, Radar, Plug, Wifi } from "lucide-react";
-import type { DiscoveredDevice, DeviceInfo } from "../types";
+import { RefreshCw, Search, Radar, Plug, Wifi, CheckCircle2 } from "lucide-react";
+import type { DiscoveredDevice } from "../types";
 import DeviceCard from "../components/DeviceCard";
+
+interface ConnectedPeer {
+  id: string;
+  state: string;
+  address: string;
+}
 
 function Devices() {
   const [devices, setDevices] = useState<DiscoveredDevice[]>([]);
+  const [connectedPeers, setConnectedPeers] = useState<ConnectedPeer[]>([]);
   const [search, setSearch] = useState("");
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [showManualConnect, setShowManualConnect] = useState(false);
   const [manualIp, setManualIp] = useState("");
   const [manualPort, setManualPort] = useState("42424");
   const [connectStatus, setConnectStatus] = useState("");
-  const [deviceInfo, setDeviceInfo] = useState<DeviceInfo | null>(null);
   const [localIp, setLocalIp] = useState("");
 
-  async function loadDevices() {
+  async function loadData() {
     try {
       const devs = await invoke<DiscoveredDevice[]>("get_discovered_devices");
       setDevices(devs);
     } catch (e) {
       console.error("Failed to get devices:", e);
     }
-  }
-
-  async function loadDeviceInfo() {
     try {
-      const info = await invoke<DeviceInfo>("get_device_info");
-      setDeviceInfo(info);
+      const peers = await invoke<ConnectedPeer[]>("get_connected_peers");
+      setConnectedPeers(peers);
     } catch (e) {
-      console.error("Failed to get device info:", e);
+      console.error("Failed to get connected peers:", e);
     }
     try {
       const ip = await invoke<string>("get_local_ip");
@@ -47,7 +50,7 @@ function Devices() {
       console.error("Failed to start discovery:", e);
     }
     setTimeout(() => {
-      loadDevices();
+      loadData();
       setIsDiscovering(false);
     }, 2000);
   }
@@ -62,8 +65,10 @@ function Devices() {
       });
       setConnectStatus("Connected!");
       setManualIp("");
-      loadDevices();
-      setTimeout(() => setConnectStatus(""), 3000);
+      setTimeout(() => {
+        loadData();
+        setConnectStatus("");
+      }, 1000);
     } catch (e) {
       setConnectStatus(`Failed: ${e}`);
       setTimeout(() => setConnectStatus(""), 5000);
@@ -77,21 +82,23 @@ function Devices() {
         address: device.addresses[0],
         port: device.port,
       });
+      loadData();
     } catch (e) {
       console.error("Failed to connect:", e);
     }
   }
 
   useEffect(() => {
-    loadDevices();
-    loadDeviceInfo();
-    const interval = setInterval(loadDevices, 5000);
+    loadData();
+    const interval = setInterval(loadData, 3000);
     return () => clearInterval(interval);
   }, []);
 
   const filtered = devices.filter((d) =>
     d.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  const pairedPeers = connectedPeers.filter((p) => p.state === "Paired" || p.state === "Controlling");
 
   return (
     <div className="max-w-5xl">
@@ -120,7 +127,7 @@ function Devices() {
             {isDiscovering ? "Scanning..." : "Scan"}
           </button>
           <button
-            onClick={loadDevices}
+            onClick={loadData}
             className="flex items-center gap-2 px-4 py-2 bg-dark-card border border-dark-border rounded-lg text-sm text-dark-text hover:bg-dark-hover transition-colors"
           >
             <RefreshCw size={16} />
@@ -145,13 +152,47 @@ function Devices() {
         </div>
       )}
 
+      {/* Connected peers */}
+      {pairedPeers.length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-sm font-semibold text-dark-text-secondary uppercase tracking-wider mb-3">
+            Connected Devices ({pairedPeers.length})
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {pairedPeers.map((peer) => (
+              <div
+                key={peer.id}
+                className="bg-dark-card border border-green-500/30 rounded-xl p-4"
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                    <CheckCircle2 size={20} className="text-green-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-white truncate">
+                      Peer {peer.id.slice(0, 8)}...
+                    </p>
+                    <p className="text-xs text-dark-text-secondary">
+                      {peer.address || "Unknown address"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-green-400"></span>
+                  <span className="text-xs text-green-400 font-medium">{peer.state}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Manual connect panel */}
       {showManualConnect && (
         <div className="bg-dark-card border border-dark-border rounded-xl p-5 mb-6">
           <h3 className="text-sm font-semibold text-white mb-3">Connect by IP Address</h3>
           <p className="text-xs text-dark-text-secondary mb-4">
             If auto-discovery doesn't work (e.g., WiFi + Ethernet), enter the other device's IP address.
-            You can find it in the Devices page of the other device.
           </p>
           <div className="flex gap-3">
             <input
@@ -199,31 +240,39 @@ function Devices() {
         />
       </div>
 
-      {/* Device grid */}
-      {filtered.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((device) => (
-            <DeviceCard
-              key={device.id}
-              device={device}
-              onConnect={handleConnect}
-            />
-          ))}
+      {/* Discovered device grid */}
+      {filtered.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-dark-text-secondary uppercase tracking-wider mb-3">
+            Discovered via mDNS ({filtered.length})
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered.map((device) => (
+              <DeviceCard
+                key={device.id}
+                device={device}
+                onConnect={handleConnect}
+              />
+            ))}
+          </div>
         </div>
-      ) : (
+      )}
+
+      {/* Empty state */}
+      {filtered.length === 0 && pairedPeers.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="w-16 h-16 rounded-2xl bg-dark-card border border-dark-border flex items-center justify-center mb-4">
             <Radar size={28} className="text-dark-text-secondary" />
           </div>
           <h3 className="text-lg font-medium text-dark-text mb-1">No devices found</h3>
           <p className="text-sm text-dark-text-secondary max-w-sm mb-4">
-            Make sure other Stark-Link devices are running on the same network, then click Scan.
+            Make sure Stark-Link is running on your other device, then try scanning or connect by IP.
           </p>
           <button
             onClick={() => setShowManualConnect(true)}
             className="text-sm text-accent-blue hover:underline"
           >
-            Or connect manually by IP address →
+            Connect manually by IP address →
           </button>
         </div>
       )}
