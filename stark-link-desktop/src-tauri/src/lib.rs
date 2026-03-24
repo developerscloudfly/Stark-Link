@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Arc;
-use tauri::State;
+use tauri::{Manager, State};
 use tokio::sync::RwLock;
 
 use stark_link_core::StarkLink;
@@ -255,6 +255,23 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
         .manage(app_state)
+        .setup(|app| {
+            // Auto-start discovery and WebSocket server on launch
+            let state = app.state::<AppState>();
+            let sl = state.stark_link.clone();
+            tauri::async_runtime::spawn(async move {
+                let stark_link: tokio::sync::RwLockReadGuard<'_, StarkLink> = sl.read().await;
+                match stark_link.start().await {
+                    Ok(_) => {
+                        eprintln!("[StarkLink] Discovery and server started successfully");
+                    }
+                    Err(e) => {
+                        eprintln!("[StarkLink] Failed to start: {}", e);
+                    }
+                }
+            });
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             get_device_info,
             get_discovered_devices,
